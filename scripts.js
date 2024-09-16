@@ -1,0 +1,134 @@
+const mainPage = document.getElementById('mainPage');
+const difficultyPage = document.getElementById('difficultyPage');
+const gamePage = document.getElementById('gamePage');
+const gameElement = document.getElementById('game');
+const statusElement = document.getElementById('status');
+const restartButton = document.getElementById('restartButton');
+const themeToggle = document.getElementById('themeToggle');
+let board = ['', '', '', '', '', '', '', '', ''];
+let currentPlayer = 'X';
+let isGameActive = true;
+let gameMode = ''; // '1player' or '2player'
+let difficulty = ''; // 'easy', 'medium', 'hard'
+let isDarkTheme = true;
+
+const winningConditions = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6]
+];
+
+function showDifficultySelect() {
+    mainPage.classList.add('hidden');
+    difficultyPage.classList.remove('hidden');
+}
+
+function startGame(selectedDifficulty) {
+    difficulty = selectedDifficulty;
+    difficultyPage.classList.add('hidden');
+    gamePage.classList.remove('hidden');
+    showGame('1player');
+}
+
+function showGame(mode) {
+    gameMode = mode;
+    mainPage.classList.add('hidden');
+    gamePage.classList.remove('hidden');
+    restartGame();
+}
+
+function showMainPage() {
+    mainPage.classList.remove('hidden');
+    difficultyPage.classList.add('hidden');
+    gamePage.classList.add('hidden');
+}
+
+function createBoard() {
+    gameElement.innerHTML = '';
+    board.forEach((cell, index) => {
+        const cellElement = document.createElement('div');
+        cellElement.classList.add('cell');
+        cellElement.innerText = cell;
+        cellElement.addEventListener('click', () => handleCellClick(index));
+        gameElement.appendChild(cellElement);
+    });
+}
+
+function handleCellClick(index) {
+    if (board[index] !== '' || !isGameActive) return;
+
+    board[index] = currentPlayer;
+    updateBoard();
+    checkWin();
+    if (isGameActive) {
+        currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+        if (gameMode === '1player' && currentPlayer === 'O') {
+            setTimeout(aiMove, 500);
+        }
+    }
+}
+
+function updateBoard() {
+    const cells = document.querySelectorAll('.cell');
+    cells.forEach((cell, index) => {
+        cell.innerText = board[index];
+    });
+}
+
+function checkWin() {
+    for (const condition of winningConditions) {
+        const [a, b, c] = condition;
+        if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+            isGameActive = false;
+            highlightWin(condition);
+            statusElement.innerText = `${currentPlayer} Wins!`;
+            statusElement.style.color = currentPlayer === 'X' ? 'green' : 'yellow';
+            return;
+        }
+    }
+
+    if (!board.includes('')) {
+        isGameActive = false;
+        statusElement.innerText = 'It\'s a Draw!';
+    }
+}
+
+function highlightWin(condition) {
+    condition.forEach(index => {
+        document.querySelectorAll('.cell')[index].style.backgroundColor = '#c8e6c9'; // Light green for X wins
+    });
+}
+
+function aiMove() {
+    const availableMoves = board.reduce((acc, cell, index) => cell === '' ? acc.concat(index) : acc, []);
+    if (availableMoves.length === 0) return;
+
+    const move = availableMoves[Math.floor(Math.random() * availableMoves.length)];
+    board[move] = 'O';
+    updateBoard();
+    checkWin();
+    if (isGameActive) {
+        currentPlayer = 'X';
+    }
+}
+
+function restartGame() {
+    board = ['', '', '', '', '', '', '', '', ''];
+    currentPlayer = Math.random() > 0.5 ? 'X' : 'O'; // Randomly choose X or O to start
+    isGameActive = true;
+    createBoard();
+    statusElement.innerText = `${currentPlayer}'s Turn`;
+    statusElement.style.color = '#333';
+}
+
+function toggleTheme() {
+    isDarkTheme = !isDarkTheme;
+    document.body.classList.toggle('dark-theme', isDarkTheme);
+    document.body.classList.toggle('light-theme', !isDarkTheme);
+    themeToggle.innerHTML = isDarkTheme ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+}
