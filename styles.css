@@ -1,167 +1,137 @@
-body {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    margin: 0;
-    font-family: 'Segoe UI', sans-serif;
-    background-color: #f0f0f0;
-    transition: background-color 0.3s, color 0.3s;
+const mainPage = document.getElementById('mainPage');
+const difficultyPage = document.getElementById('difficultyPage');
+const gamePage = document.getElementById('gamePage');
+const gameElement = document.getElementById('game');
+const statusElement = document.getElementById('status');
+const restartButton = document.getElementById('restartButton');
+const themeToggle = document.getElementById('themeToggle');
+let board = ['', '', '', '', '', '', '', '', ''];
+let currentPlayer = 'X';
+let isGameActive = true;
+let gameMode = ''; // '1player' or '2player'
+let difficulty = ''; // 'easy', 'medium', 'hard'
+let isDarkTheme = true;
+
+const winningConditions = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6]
+];
+
+function showDifficultySelect() {
+    mainPage.classList.add('hidden');
+    difficultyPage.classList.remove('hidden');
 }
 
-.container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 20px;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(8px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-    text-align: center;
-    transition: background 0.3s, color 0.3s;
+function startGame(selectedDifficulty) {
+    difficulty = selectedDifficulty;
+    difficultyPage.classList.add('hidden');
+    gamePage.classList.remove('hidden');
+    showGame('1player');
 }
 
-h1 {
-    color: #333;
-    font-weight: bold;
-    margin-bottom: 20px;
-    transition: color 0.3s;
+function showGame(mode) {
+    gameMode = mode;
+    mainPage.classList.add('hidden');
+    gamePage.classList.remove('hidden');
+    restartGame();
 }
 
-.button-group {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+function showMainPage() {
+    mainPage.classList.remove('hidden');
+    difficultyPage.classList.add('hidden');
+    gamePage.classList.add('hidden');
 }
 
-.button {
-    width: 150px;
-    height: 50px;
-    background: #d1c4e9; /* Pastel purple */
-    color: #333;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 1.2em;
-    font-weight: bold;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background-color 0.3s, transform 0.2s;
+function createBoard() {
+    gameElement.innerHTML = '';
+    board.forEach((cell, index) => {
+        const cellElement = document.createElement('div');
+        cellElement.classList.add('cell');
+        cellElement.innerText = cell;
+        cellElement.addEventListener('click', () => handleCellClick(index));
+        gameElement.appendChild(cellElement);
+    });
 }
 
-.button:hover {
-    background-color: #b39ddb; /* Darker pastel purple for hover effect */
-    transform: scale(1.05);
+function handleCellClick(index) {
+    if (board[index] !== '' || !isGameActive) return;
+
+    board[index] = currentPlayer;
+    updateBoard();
+    checkWin();
+    if (isGameActive) {
+        currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+        if (gameMode === '1player' && currentPlayer === 'O') {
+            setTimeout(aiMove, 500);
+        } else {
+            statusElement.innerText = `${currentPlayer}'s Turn`;
+            statusElement.style.color = '#333';
+        }
+    }
 }
 
-.button i {
-    margin-right: 8px;
+function updateBoard() {
+    document.querySelectorAll('.cell').forEach((cell, index) => {
+        cell.innerText = board[index];
+    });
 }
 
-#game {
-    display: grid;
-    grid-template-columns: repeat(3, 100px);
-    grid-template-rows: repeat(3, 100px);
-    gap: 8px;
-    margin: 20px 0;
+function checkWin() {
+    for (const condition of winningConditions) {
+        const [a, b, c] = condition;
+        if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+            isGameActive = false;
+            highlightWin(condition);
+            statusElement.innerText = `${currentPlayer} Wins!`;
+            statusElement.style.color = currentPlayer === 'X' ? 'green' : 'yellow';
+            return;
+        }
+    }
+
+    if (!board.includes('')) {
+        isGameActive = false;
+        statusElement.innerText = 'It\'s a Draw!';
+        statusElement.style.color = 'red';
+    }
 }
 
-.cell {
-    width: 100px;
-    height: 100px;
-    background: #ffffff;
-    color: #333;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 2em;
-    font-weight: bold;
-    cursor: pointer;
-    border-radius: 12px;
-    transition: background-color 0.3s;
+function highlightWin(condition) {
+    condition.forEach(index => {
+        document.querySelectorAll('.cell')[index].style.backgroundColor = '#ff9800'; // Orange for winning lines
+    });
 }
 
-.cell:hover {
-    background-color: #e0e0e0; /* Light gray for hover effect */
+function aiMove() {
+    const availableMoves = board.reduce((acc, cell, index) => cell === '' ? acc.concat(index) : acc, []);
+    if (availableMoves.length === 0) return;
+
+    const move = availableMoves[Math.floor(Math.random() * availableMoves.length)];
+    board[move] = 'O';
+    updateBoard();
+    checkWin();
+    if (isGameActive) {
+        currentPlayer = 'X';
+    }
 }
 
-#status {
-    margin-top: 20px;
-    font-size: 1.2em;
-    font-weight: bold;
-    transition: color 0.3s;
+function restartGame() {
+    board = ['', '', '', '', '', '', '', '', ''];
+    currentPlayer = Math.random() > 0.5 ? 'X' : 'O'; // Randomly choose X or O to start
+    isGameActive = true;
+    createBoard();
+    statusElement.innerText = `${currentPlayer}'s Turn`;
+    statusElement.style.color = '#333';
 }
 
-button {
-    margin-top: 20px;
-    padding: 10px 20px;
-    font-size: 1.1em;
-    border-radius: 12px;
-    border: none;
-    cursor: pointer;
-    background: #0078d4;
-    color: #ffffff;
-    font-weight: bold;
-    transition: background-color 0.3s, transform 0.2s;
-}
-
-button:hover {
-    background-color: #005a9e;
-    transform: scale(1.05);
-}
-
-.hidden {
-    display: none;
-}
-
-.icon-button {
-    border: none;
-    background: transparent;
-    color: #333;
-    font-size: 1.5em;
-    cursor: pointer;
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    transition: color 0.3s;
-}
-
-.icon-button:hover {
-    color: #0078d4; /* Highlighted color on hover */
-}
-
-.dark-theme {
-    background-color: #1e1e1e;
-}
-
-.dark-theme .container {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.dark-theme .cell {
-    background: rgba(255, 255, 255, 0.2);
-    color: #ffffff;
-}
-
-.dark-theme #status {
-    color: #ffffff;
-}
-
-.light-theme {
-    background-color: #f0f0f0;
-}
-
-.light-theme .container {
-    background: rgba(0, 0, 0, 0.1);
-}
-
-.light-theme .cell {
-    background: rgba(0, 0, 0, 0.1);
-    color: #000000;
-}
-
-.light-theme #status {
-    color: #000000;
+function toggleTheme() {
+    isDarkTheme = !isDarkTheme;
+    document.body.classList.toggle('dark-theme', isDarkTheme);
+    document.body.classList.toggle('light-theme', !isDarkTheme);
+    themeToggle.innerHTML = isDarkTheme ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
 }
